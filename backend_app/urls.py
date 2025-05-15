@@ -1,22 +1,23 @@
 from django.urls import path
-from .views import shared_views, doctor_views
+from .views import shared_views, doctor_views, patient_view
 
 
 urlpatterns = [
     #doctor URL
-    path('register/doctor', doctor_views.register_doctor, name='register'),
-    path('login/', doctor_views.login_doctor, name='login'),
-    path('get_doctor/', doctor_views.get_doctor_data, name='get_doctor'),
-    # path('get_doctor/<int:get_doctor>', doctor_views.get_doctor_data, name='get_doctor'),
+    path('doctor/register', doctor_views.register_doctor, name='register_doctor'),
+    path('doctor/login', doctor_views.login_doctor, name='login_doctor'),
+    path('get_doctor', doctor_views.get_doctor_data, name='get_doctor'),
+    path('get_doctor_id_from_refresh', doctor_views.get_doctor_id_from_refresh, name='get_doctor_id_from_refresh'),
+    path('delete_doctor/<int:doctor_id>', doctor_views.delete_doctor, name='delete_doctor'),
 
 
     #patient URL
-    # path('login/patient', patient_views.login_patient, name='login_patient'),
+    path('patient/register', patient_view.register_patient, name='register_patient'),
+    path('patient/login', patient_view.login_patient, name='login_patient'),
 
 
     #shared URL
-    path('logout/', shared_views.logout, name='logout'),
-    path('ref/', shared_views.refresh_token, name='refresh_token'),
-    path('blacklisting/', shared_views.blacklisting, name='user_blacklisting'), #api ya3mel blacklist lel user fih mochkla mba3d gadih
+    path('ref', shared_views.refresh_token, name='refresh_token'),
+    path('logout', shared_views.logout, name='logout'),
     
 ]

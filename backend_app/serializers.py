@@ -19,7 +19,6 @@ class AdminSerializer(serializers.ModelSerializer):
         }
 
 
-    
 class DoctorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Doctor
@@ -31,17 +30,30 @@ class DoctorSerializer(serializers.ModelSerializer):
             'password': {'write_only': True},
         }
 
+    def create(self, validated_data):
+        password = validated_data.pop("password")
+        user = Doctor(**validated_data)
+        user.set_password(password)  # Hash the password
+        user.save()
+        return user
+
 
 class PatientSerializer(serializers.ModelSerializer):
+    
     doctor = serializers.PrimaryKeyRelatedField(queryset=Doctor.objects.all())
-
     class Meta:
         model = Patient
         fields = [
-            'id', 'full_name', 'email', 'password',
-            'current_appointemnt_day', 'next_appointemnt_day', 'doctor',
+            'id', 'full_name', 'email', 'password', 'doctor',
             'state', 'city', 'patient_adress', 'zip_code'
         ]
         extra_kwargs = {
             'password': {'write_only': True},
         }
+
+    def create(self, validated_data):
+        password = validated_data.pop("password")
+        user = Patient(**validated_data)
+        user.set_password(password)  # Hash the password
+        user.save()
+        return user

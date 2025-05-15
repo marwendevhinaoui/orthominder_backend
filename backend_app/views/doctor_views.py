@@ -1,12 +1,17 @@
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, authentication_classes
 from rest_framework.response import Response
-from rest_framework import status
 from ..serializers import DoctorSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from ..models import Doctor
 from rest_framework_simplejwt.exceptions import AuthenticationFailed
-
+from django.conf import settings
 from rest_framework_simplejwt.tokens import AccessToken
+import jwt
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+
+from rest_framework_simplejwt.authentication import JWTAuthentication
+
+
 
 @api_view(['POST'])
 def register_doctor(request):
@@ -19,58 +24,126 @@ def register_doctor(request):
                     'message': 'Doctor registered successfully',
                     'user': DoctorSerializer(user).data
                 },
-                status=status.HTTP_201_CREATED
+                status=200
             )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=400)
 
 
 
 @api_view(['POST'])
 def login_doctor(request):
-    email = request.data.get('email')
-    password = request.data.get('password')
+    if request.method == 'POST':
+        email = request.data.get('email')
+        password = request.data.get('password')
 
-    try:
-        doctor = Doctor.objects.get(email=email)
-        if doctor.password != password:
-            return Response({'error': 'Invalid credentials'}, status=401)
+        try:
+            doctor = Doctor.objects.get(email=email)
+            if not doctor.check_password(password):
+                return Response({'error': 'Invalid password!'}, status=401)
+            
+            else:
+                refresh = RefreshToken()
+                refresh['doctor_id'] = doctor.id
+                refresh['user_type'] = 'doctor'
+                print(refresh['user_type'],'-----------------------------------------')
+                access_token = refresh.access_token
 
-        refresh = RefreshToken()
-        refresh['doctor_id'] = doctor.id
 
-        access_token = refresh.access_token
-        access_token['doctor_id'] = doctor.id 
+                response = Response({
+                    'access': str(access_token),
+                    'refresh': str(refresh),
+                    'doctor': DoctorSerializer(doctor).data,
+                    'redirect':'/doctor',
+                })
+                
+                response.set_cookie(
+                    key='refresh',
+                    value=str(refresh),
+                    httponly=True, 
+                    secure=not settings.DEBUG,  
+                    samesite='Lax' if settings.DEBUG else 'Strict', 
+                    max_age=60 * 60 * 24,  
+                    path='/'
+                )
 
-        return Response({
-            'access': str(access_token),
-            'refresh': str(refresh),
-            'doctor': DoctorSerializer(doctor).data,
-            'redirect':'/doctor'
-        })
-    except Doctor.DoesNotExist:
-        return Response({'error': 'Email not exist!'}, status=404)
+                return response
+        except Doctor.DoesNotExist:
+            return Response({'error': 'Invalid credentials!'}, status=404)
     
-
 
 
 @api_view(['GET'])
 def get_doctor_data(request):
-    auth_header = request.headers.get('Authorization')
+    if request.method == 'GET':
 
-    if not auth_header or not auth_header.startswith('Bearer '):
-        return Response({'error': 'Authorization header missing or malformed'}, status=401)
+        refresh_token = request.COOKIES.get('refresh')  
+        
+        if not refresh_token:
+            return Response({'error': 'No refresh token provided'}, status=400)
+        
+        try:
+            refresh = RefreshToken(refresh_token)
+            doctor_id = refresh['doctor_id']
+            if not doctor_id:
+                return Response('doctor_id not found in token.')
+ 
+            
+            doctor = Doctor.objects.get(id=doctor_id)
+            return Response(DoctorSerializer(doctor).data, status=200)
+        
+        except jwt.ExpiredSignatureError:
+            return Response({'error': 'Refresh token expired'}, status=401)
+        except jwt.DecodeError:
+            return Response({'error': 'Invalid token'}, status=401)
+        
 
-    token_str = auth_header.split(' ')[1]
+
+
+@api_view(['GET'])
+def get_doctor_id_from_refresh(request):
+    if request.method == 'GET':
+
+        refresh_token = request.COOKIES.get('refresh')  
+        
+        if not refresh_token:
+            return Response({'error': 'No refresh token provided'}, status=400)
+        
+        try:
+            refresh = RefreshToken(refresh_token)
+            
+            doctor_id = refresh['doctor_id']
+            
+            return Response({'doctor_id': doctor_id}, status=200)
+        
+        except jwt.ExpiredSignatureError:
+            return Response({'error': 'Refresh token expired'}, status=401)
+        except jwt.DecodeError:
+            return Response({'error': 'Invalid token'}, status=401)
+        
+
+
+
+def blacklist_ref_tokens_with_user(user):
+    tokens = OutstandingToken.objects.filter(user=user)
+    for token in tokens:
+        try:
+            BlacklistedToken.objects.get_or_create(token=token)
+        except:
+            Response({'error':'error deleting token'})
+
+
+@api_view(['DELETE'])
+@authentication_classes([JWTAuthentication])
+def delete_doctor(request, doctor_id):
 
     try:
-        token = AccessToken(token_str)
-        doctor_id = token.get('doctor_id')
-
-        if not doctor_id:
-            raise AuthenticationFailed('doctor_id not found in token.')
-
         doctor = Doctor.objects.get(id=doctor_id)
-        return Response(DoctorSerializer(doctor).data)
-
+        blacklist_ref_tokens_with_user(doctor)
+        doctor.delete()
+        return Response({"message": "Doctor deleted and tokens blacklisted successfully"}, status=200)
+    
+    except Doctor.DoesNotExist:
+        return Response({"error": "Doctor not found"}, status=404)
+    
     except Exception as e:
-        return Response({'error': f'Authentication failed: {str(e)}'}, status=401)
+        return Response({"error": f"An error occurred: {str(e)}"}, status=500)

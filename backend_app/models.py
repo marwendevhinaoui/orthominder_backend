@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.exceptions import ValidationError
 
 class SuperAdmin(AbstractUser):
     username = None
@@ -34,6 +35,15 @@ class SuperAdmin(AbstractUser):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
+    def save(self, *args, **kwargs):
+        if (
+            Patient.objects.filter(email=self.email).exclude(pk=self.pk).exists() or
+            Admin.objects.filter(email=self.email).exclude(pk=self.pk).exists() or
+            Doctor.objects.filter(email=self.email).exclude(pk=self.pk).exists()
+        ):
+            raise ValidationError("This email is already used by another user.")
+        super().save(*args, **kwargs)   
+
 class Admin(AbstractUser):
     username = None
     last_name = None 
@@ -66,7 +76,16 @@ class Admin(AbstractUser):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
-class Doctor(models.Model):
+    def save(self, *args, **kwargs):
+        if (
+            Patient.objects.filter(email=self.email).exclude(pk=self.pk).exists() or
+            SuperAdmin.objects.filter(email=self.email).exclude(pk=self.pk).exists() or
+            Doctor.objects.filter(email=self.email).exclude(pk=self.pk).exists()
+        ):
+            raise ValidationError("This email is already used by another user.")
+        super().save(*args, **kwargs)   
+
+class Doctor(AbstractUser):
     username = None
     last_name = None 
     first_name = None
@@ -115,6 +134,15 @@ class Doctor(models.Model):
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
+
+    def save(self, *args, **kwargs):
+        if (
+            Patient.objects.filter(email=self.email).exclude(pk=self.pk).exists() or
+            SuperAdmin.objects.filter(email=self.email).exclude(pk=self.pk).exists() or
+            Admin.objects.filter(email=self.email).exclude(pk=self.pk).exists()
+        ):
+            raise ValidationError("This email is already used by another user.")
+        super().save(*args, **kwargs)
 
 class Patient(AbstractUser):
     username = None
@@ -169,23 +197,24 @@ class Patient(AbstractUser):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
+    def save(self, *args, **kwargs):
+        if (
+            SuperAdmin.objects.filter(email=self.email).exclude(pk=self.pk).exists() or
+            Admin.objects.filter(email=self.email).exclude(pk=self.pk).exists() or
+            Doctor.objects.filter(email=self.email).exclude(pk=self.pk).exists()
+        ):
+            raise ValidationError("This email is already used by another user.")
+        super().save(*args, **kwargs)   
+
 
 class Aligner(models.Model):
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='aligners')
-    aligner_number = models.IntegerField(
-        validators=[
-            MinValueValidator(1),
-            MaxValueValidator(222)
-        ],
-        blank=False
-    )
     wearing_day = models.DateField()
     weared_hours = models.IntegerField(
         validators=[
             MinValueValidator(0),
             MaxValueValidator(24)
         ],
-        blank=False
     )
     photo = models.CharField(max_length=9999)
 
@@ -193,6 +222,13 @@ class Appointement (models.Model):
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='appointments')
     treatment_duration = models.IntegerField()
     appointemnt_day = models.DateField() # Bech ye5o rendez vous kol mara ------->  ya3ni yekml treatment_duration y3awed ya5o rendez vous
+    aligner_number = models.IntegerField(
+        validators=[
+            MinValueValidator(1),
+            MaxValueValidator(222)
+        ],
+        blank=False
+    )
     is_paid = models.BooleanField(default=False)
 
 
