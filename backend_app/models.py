@@ -228,6 +228,7 @@ class Appointement (models.Model):
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
     treatment_duration = models.IntegerField()
     appointemnt_day = models.DateField() # Bech ye5o rendez vous kol mara ------->  ya3ni yekml treatment_duration y3awed ya5o rendez vous
+    next_appointemnt_day = models.DateField()
     aligner_number = models.IntegerField(
         validators=[
             MinValueValidator(1),
