@@ -1,9 +1,8 @@
 from rest_framework.decorators import api_view, authentication_classes
 from rest_framework.response import Response
-from ..serializers import DoctorSerializer
+from ..serializers import AppointementSerializers, DoctorSerializer, PatientSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
-from ..models import Doctor
-from rest_framework_simplejwt.exceptions import AuthenticationFailed
+from ..models import Appointement, Doctor, Patient
 from django.conf import settings
 from rest_framework_simplejwt.tokens import AccessToken
 import jwt
@@ -16,17 +15,27 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 @api_view(['POST'])
 def register_doctor(request):
     if request.method == 'POST':
-        serializer = DoctorSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save()
-            return Response(
-                {
-                    'message': 'Doctor registered successfully',
-                    'user': DoctorSerializer(user).data
-                },
-                status=200
-            )
-        return Response(serializer.errors, status=400)
+
+        # refresh_token = request.COOKIES.get('refresh')  
+            
+        # if not refresh_token:
+        #     return Response({'error': 'No refresh token provided'}, status=400)
+        # try:
+            serializer = DoctorSerializer(data=request.data)
+            if serializer.is_valid():
+                user = serializer.save()
+                return Response(
+                    {
+                        'message': 'Doctor registered successfully',
+                        'user': DoctorSerializer(user).data
+                    },
+                    status=200
+                )
+            return Response(serializer.errors, status=400)
+        # except jwt.ExpiredSignatureError:
+        #     return Response({'error': 'Refresh token expired'}, status=401)
+        # except jwt.DecodeError:
+        #     return Response({'error': 'Invalid token'}, status=401)
 
 
 
@@ -45,7 +54,7 @@ def login_doctor(request):
                 refresh = RefreshToken()
                 refresh['doctor_id'] = doctor.id
                 refresh['user_type'] = 'doctor'
-                print(refresh['user_type'],'-----------------------------------------')
+
                 access_token = refresh.access_token
 
 
@@ -122,28 +131,73 @@ def get_doctor_id_from_refresh(request):
         
 
 
+@api_view(['GET'])
+def get_all_appointements(request):
+    if request.method == 'GET':
 
-def blacklist_ref_tokens_with_user(user):
-    tokens = OutstandingToken.objects.filter(user=user)
-    for token in tokens:
+        refresh_token = request.COOKIES.get('refresh')  
+        
+        if not refresh_token:
+            return Response({'error': 'No refresh token provided'}, status=400)
+        
         try:
-            BlacklistedToken.objects.get_or_create(token=token)
-        except:
-            Response({'error':'error deleting token'})
+            appointements = Appointement.objects.all()
+            serializer = AppointementSerializers(appointements, many=True)
+            return Response(serializer.data, status=200)
+        
+        except jwt.ExpiredSignatureError:
+            return Response({'error': 'Refresh token expired'}, status=401)
+        except jwt.DecodeError:
+            return Response({'error': 'Invalid token'}, status=401)
 
 
-@api_view(['DELETE'])
-@authentication_classes([JWTAuthentication])
-def delete_doctor(request, doctor_id):
+@api_view(['GET'])
+def get_all_patient(request):
+    if request.method == 'GET':
 
-    try:
-        doctor = Doctor.objects.get(id=doctor_id)
-        blacklist_ref_tokens_with_user(doctor)
-        doctor.delete()
-        return Response({"message": "Doctor deleted and tokens blacklisted successfully"}, status=200)
+        refresh_token = request.COOKIES.get('refresh')  
+        
+        if not refresh_token:
+            return Response({'error': 'No refresh token provided'}, status=400)
+        
+        try:
+            refresh = RefreshToken(refresh_token)
+            doctor_id = refresh['doctor_id']
+            if not doctor_id:
+                return Response('doctor_id not found in token.')
+            
+            patients = Patient.objects.filter(doctor_id=doctor_id)
+            serializer = PatientSerializer(patients, many=True)
+            return Response(serializer.data, status=200)
+        
+        except jwt.ExpiredSignatureError:
+            return Response({'error': 'Refresh token expired'}, status=401)
+        except jwt.DecodeError:
+            return Response({'error': 'Invalid token'}, status=401)
+
+
+#TO fix !!!!!!!!!!!!!!!!
+# def blacklist_ref_tokens_with_user(user):
+#     tokens = OutstandingToken.objects.filter(user=user)
+#     for token in tokens:
+#         try:
+#             BlacklistedToken.objects.get_or_create(token=token)
+#         except:
+#             Response({'error':'error deleting token'})
+
+
+# @api_view(['DELETE'])
+# @authentication_classes([JWTAuthentication])
+# def delete_doctor(request, doctor_id):
+
+#     try:
+#         doctor = Doctor.objects.get(id=doctor_id)
+#         blacklist_ref_tokens_with_user(doctor)
+#         doctor.delete()
+#         return Response({"message": "Doctor deleted and tokens blacklisted successfully"}, status=200)
     
-    except Doctor.DoesNotExist:
-        return Response({"error": "Doctor not found"}, status=404)
+#     except Doctor.DoesNotExist:
+#         return Response({"error": "Doctor not found"}, status=404)
     
-    except Exception as e:
-        return Response({"error": f"An error occurred: {str(e)}"}, status=500)
+#     except Exception as e:
+#         return Response({"error": f"An error occurred: {str(e)}"}, status=500)

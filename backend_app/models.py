@@ -11,6 +11,7 @@ class SuperAdmin(AbstractUser):
     last_login = None 
     is_staff = None 
     date_joined = None 
+    is_active = None 
     full_name = models.CharField(max_length=200, blank=False)
     email = models.EmailField('email address', unique=True, blank=False)
     password = models.CharField(max_length=300, blank=False)
@@ -52,6 +53,8 @@ class Admin(AbstractUser):
     last_login = None 
     is_staff = None 
     date_joined = None 
+    is_active = None 
+
     full_name = models.CharField(max_length=200, blank=False)
     email = models.EmailField('email address', unique=True, blank=False)
     password = models.CharField(max_length=300, blank=False)
@@ -93,6 +96,8 @@ class Doctor(AbstractUser):
     last_login = None 
     is_staff = None 
     date_joined = None 
+    is_active = None 
+
     registiration_number = models.IntegerField(
         validators=[
             MinValueValidator(1000000000),
@@ -107,6 +112,14 @@ class Doctor(AbstractUser):
     state = models.CharField(max_length=200, blank=False)
     city = models.CharField(max_length=200, blank=False)
     office_adress = models.CharField(max_length=200, blank=False)
+    phone_number = models.IntegerField(
+        validators=[
+            MinValueValidator(10000000),
+            MaxValueValidator(99999999)
+        ],
+        unique=True,        
+        blank=False
+    )
     zip_code = models.IntegerField(
         validators=[
             MinValueValidator(1000),
@@ -152,20 +165,21 @@ class Patient(AbstractUser):
     last_login = None 
     is_staff = None 
     date_joined = None 
+    is_active = None 
+
     full_name = models.CharField(max_length=200, blank=False)
     email = models.EmailField('email address', unique=True, blank=False)
     password = models.CharField(max_length=300, blank=False)
-
-    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name='patients')
-    status = models.CharField(
-        max_length=20,
-        choices=[
-            ('IN PROGRESS', 'IN PROGRESS'),
-            ('COMPLETED', 'Completed'),
-            ('CANCELLED', 'Cancelled'),
+    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE)
+    phone_number = models.IntegerField(
+        validators=[
+            MinValueValidator(10000000),
+            MaxValueValidator(99999999)
         ],
-        default='IN PROGRESS'
+        unique=True,
+        blank=False
     )
+
     state = models.CharField(max_length=200, blank=False)
     city = models.CharField(max_length=200, blank=False)
     patient_adress = models.CharField(max_length=200, blank=False)
@@ -207,19 +221,11 @@ class Patient(AbstractUser):
         super().save(*args, **kwargs)   
 
 
-class Aligner(models.Model):
-    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='aligners')
-    wearing_day = models.DateField()
-    weared_hours = models.IntegerField(
-        validators=[
-            MinValueValidator(0),
-            MaxValueValidator(24)
-        ],
-    )
-    photo = models.CharField(max_length=9999)
+
 
 class Appointement (models.Model):
-    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='appointments')
+    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE)
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
     treatment_duration = models.IntegerField()
     appointemnt_day = models.DateField() # Bech ye5o rendez vous kol mara ------->  ya3ni yekml treatment_duration y3awed ya5o rendez vous
     aligner_number = models.IntegerField(
@@ -230,7 +236,25 @@ class Appointement (models.Model):
         blank=False
     )
     is_paid = models.BooleanField(default=False)
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ('IN PROGRESS', 'IN PROGRESS'),
+            ('COMPLETED', 'Completed'),
+            ('CANCELLED', 'Cancelled'),
+        ],
+        default='IN PROGRESS'
+    )
 
 
-
-
+class Aligner(models.Model):
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
+    appointment = models.ForeignKey(Appointement , on_delete=models.CASCADE)
+    wearing_day = models.DateField()
+    weared_hours = models.IntegerField(
+        validators=[
+            MinValueValidator(0),
+            MaxValueValidator(24)
+        ],
+    )
+    photo = models.CharField(max_length=9999)

@@ -55,7 +55,8 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'corsheaders',
     'rest_framework_simplejwt',
-    # 'rest_framework_simplejwt.token_blacklist',
+    'rest_framework_simplejwt.token_blacklist',
+    
 
 ]
 
@@ -164,7 +165,7 @@ SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'UPDATE_LAST_LOGIN': False,
-
+    "TOKEN_BLACKLIST_ENABLED": True,
     'ALGORITHM': 'HS256',
     'SIGNING_KEY': SECRET_KEY,
     'VERIFYING_KEY': None,

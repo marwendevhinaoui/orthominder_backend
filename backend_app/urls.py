@@ -8,12 +8,18 @@ urlpatterns = [
     path('doctor/login', doctor_views.login_doctor, name='login_doctor'),
     path('get_doctor', doctor_views.get_doctor_data, name='get_doctor'),
     path('get_doctor_id_from_refresh', doctor_views.get_doctor_id_from_refresh, name='get_doctor_id_from_refresh'),
-    path('delete_doctor/<int:doctor_id>', doctor_views.delete_doctor, name='delete_doctor'),
+    # path('delete_doctor/<int:doctor_id>', doctor_views.delete_doctor, name='delete_doctor'),
+    path('get_all_appointements', doctor_views.get_all_appointements, name='get_all_appointements'),
+    path('get_all_patient', doctor_views.get_all_patient, name='get_all_patient'),
 
 
     #patient URL
     path('patient/register', patient_view.register_patient, name='register_patient'),
     path('patient/login', patient_view.login_patient, name='login_patient'),
+    path('add_appointement', patient_view.add_appointement, name='add_appointement'),
+    path('get_appointements_by_patient_id/<int:patient_id>', patient_view.get_appointements_by_patient_id, name='get_appointements_by_patient_id'),
+    path('get_patient_by_id/<int:patient_id>', patient_view.get_patient_by_id, name='get_patient_by_id'),
+    path('get_appointements_details/<int:appointement_id>', patient_view.get_appointements_details, name='get_appointements_details'),
 
 
     #shared URL
