@@ -267,3 +267,5 @@ def get_appointements_details_by_patient(request, patient_id):
         return Response({'error': 'Refresh token expired'}, status=401)
     except jwt.DecodeError:
         return Response({'error': 'Invalid token'}, status=401)
+    
+    
