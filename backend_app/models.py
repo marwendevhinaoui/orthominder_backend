@@ -250,6 +250,13 @@ class Appointement (models.Model):
 
 class Aligner(models.Model):
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
+    current_aligner = models.IntegerField(
+        validators=[
+            MinValueValidator(1),
+            MaxValueValidator(222)
+        ],
+        blank=False
+    )
     appointment = models.ForeignKey(Appointement , on_delete=models.CASCADE)
     wearing_day = models.DateField()
     weared_hours = models.IntegerField(
@@ -258,4 +265,13 @@ class Aligner(models.Model):
             MaxValueValidator(24)
         ],
     )
-    photo = models.CharField(max_length=9999)
+    photo = models.ImageField(upload_to='aligner_photos/')
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ('Pending', 'Pending'),
+            ('Under review', 'Under review'),
+            ('Completed', 'Completed'),
+        ],
+        default='Pending'
+    )

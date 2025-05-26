@@ -77,6 +77,6 @@ class AlignerSerializers(serializers.ModelSerializer):
     class Meta:
         model = Aligner
         fields = [
-            'id', 'patient', 'appointment', 'wearing_day', 'weared_hours', 'photo'
+            'id', 'patient', 'current_aligner', 'appointment', 'wearing_day', 'weared_hours', 'photo', 'status'
         ]
 

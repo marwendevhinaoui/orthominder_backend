@@ -17,16 +17,19 @@ ALGORITHM = "HS256"
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.43.254', '192.168.43.132']
 
 #CORS ORIGINS
 # CORS_ALLOW_ALL_ORIGINS = True
 
 CORS_ORIGIN_WHITELIST = [
     'http://127.0.0.1:3000',
+    'http://192.168.43.254:8081',
+    'http://192.168.43.132:8081',
 ]
 
-
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 
 #Session Protection
@@ -56,7 +59,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
-    
+    'face_detection'
 
 ]
 
