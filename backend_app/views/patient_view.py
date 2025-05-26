@@ -255,6 +255,7 @@ def get_appointements_details_by_patient(request, patient_id):
             patient_id=patient_id
         ).update(status='COMPLETED')
 
+
         # Retrieve only IN PROGRESS appointments for the patient
         appointments = Appointement.objects.filter(
             status='IN PROGRESS',
